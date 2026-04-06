@@ -32,6 +32,9 @@ const DEFAULT_MODEL_CAMERA = {
   fov: 60,
 };
 const NON_SELECTED_FLOOR_OPACITY = 0.8;
+const MODE_ACTIVATION_DEDUPE_MS = 360;
+const MODEL_WARMUP_DELAY_MS = 1200;
+const MODEL_WARMUP_CONCURRENCY = 4;
 
 const params = new URLSearchParams(window.location.search);
 const bundleId = params.get("bundle");
@@ -39,6 +42,11 @@ const bundleId = params.get("bundle");
 let five = null;
 let currentMode = null;
 let lastThreeDMode = null;
+let pendingMode = null;
+let modeSwitchInFlight = false;
+let resolvedWorkData = null;
+let modelWarmupPromise = null;
+let modelWarmupDone = false;
 let modeAvailability = {
   Model: false,
   Panorama: false,
@@ -152,11 +160,17 @@ function pickInitialMode(availability) {
   return VIEW_MODES.Model;
 }
 
-function setModeAvailability(availability) {
+function refreshModeButtons() {
   Object.entries(modeButtons).forEach(([name, button]) => {
-    button.disabled = !availability[name];
+    button.disabled = modeSwitchInFlight || !modeAvailability[name];
+    button.classList.toggle("button--loading", pendingMode === name);
   });
   publishDebugState();
+}
+
+function setModeAvailability(availability) {
+  modeAvailability = availability;
+  refreshModeButtons();
 }
 
 function setFloorplanVisibility(visible) {
@@ -262,9 +276,127 @@ function renderSegmentedButtons(container, items, activeValue, onClick) {
       button.classList.add("segmented__button--active");
     }
     button.textContent = item.label;
-    button.addEventListener("click", () => onClick(item.value));
+    bindPress(button, () => onClick(item.value));
     container.append(button);
   });
+}
+
+function bindPress(element, handler) {
+  let lastActivatedAt = 0;
+
+  const activate = (event) => {
+    const now = Date.now();
+    if (now - lastActivatedAt < MODE_ACTIVATION_DEDUPE_MS) {
+      event?.preventDefault?.();
+      return;
+    }
+    lastActivatedAt = now;
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    handler();
+  };
+
+  element.addEventListener("pointerup", activate);
+  element.addEventListener("click", (event) => {
+    if (Date.now() - lastActivatedAt < MODE_ACTIVATION_DEDUPE_MS) {
+      event.preventDefault();
+      return;
+    }
+    activate(event);
+  });
+}
+
+function getModelWarmupUrls(work) {
+  if (!work?.model?.file_url) {
+    return [];
+  }
+
+  const urls = [work.model.file_url];
+  const textureBase = work.model.material_base_url;
+  if (textureBase && Array.isArray(work.model.material_textures)) {
+    const base = textureBase.endsWith("/") ? textureBase : `${textureBase}/`;
+    work.model.material_textures.forEach((name) => {
+      if (typeof name === "string" && name) {
+        urls.push(new URL(name, base).href);
+      }
+    });
+  }
+
+  return [...new Set(urls)];
+}
+
+function shouldWarmModelAssets() {
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  if (!connection) {
+    return true;
+  }
+  if (connection.saveData) {
+    return false;
+  }
+  return !["slow-2g", "2g"].includes(connection.effectiveType || "");
+}
+
+async function prefetchModelAssets(urls) {
+  let cursor = 0;
+  const workers = Array.from(
+    { length: Math.min(MODEL_WARMUP_CONCURRENCY, urls.length) },
+    async () => {
+      while (cursor < urls.length) {
+        const currentIndex = cursor;
+        cursor += 1;
+        const url = urls[currentIndex];
+        try {
+          const response = await fetch(url, { cache: "force-cache" });
+          if (!response.ok) {
+            throw new Error(`请求失败 ${response.status}: ${url}`);
+          }
+          await response.blob();
+        } catch (error) {
+          console.warn("模型预热失败", error);
+        }
+      }
+    },
+  );
+  await Promise.all(workers);
+}
+
+function warmModelAssets(work) {
+  if (modelWarmupPromise || !shouldWarmModelAssets()) {
+    return modelWarmupPromise;
+  }
+
+  const urls = getModelWarmupUrls(work);
+  if (!urls.length) {
+    return null;
+  }
+
+  modelWarmupPromise = prefetchModelAssets(urls)
+    .then(() => {
+      modelWarmupDone = true;
+    })
+    .finally(() => {
+      publishDebugState();
+    });
+
+  publishDebugState();
+  return modelWarmupPromise;
+}
+
+function scheduleModelWarmup(work) {
+  if (!work?.model?.file_url || modelWarmupPromise || modelWarmupDone) {
+    return;
+  }
+
+  const run = () => {
+    warmModelAssets(work);
+  };
+
+  if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(run, { timeout: MODEL_WARMUP_DELAY_MS });
+    return;
+  }
+
+  window.setTimeout(run, MODEL_WARMUP_DELAY_MS);
 }
 
 function renderFloorplanPanel() {
@@ -664,10 +796,33 @@ function attachFiveEventBridge() {
   five.on("modeChange", (_mode, _prevMode, _panoIndex, state) => {
     syncModeUIFromFiveState(state);
   });
+
+  five.on("model.request", () => {
+    if (pendingMode === "Model" || currentMode === VIEW_MODES.Model) {
+      setStatus("正在加载模型资源...");
+    }
+  });
+
+  five.on("model.load", () => {
+    modelWarmupDone = true;
+    if (currentMode === VIEW_MODES.Model || pendingMode === "Model") {
+      setStatus(describeModelStatus());
+    }
+  });
+
+  five.on("model.error", (event) => {
+    const message = event?.error?.message || String(event?.error || "未知错误");
+    setStatus(`模型加载失败: ${message}`);
+  });
 }
 
 async function switchMode(mode) {
+  if (modeSwitchInFlight) {
+    return;
+  }
+
   const previousMode = currentMode;
+  const modeKey = getModeButtonKey(mode);
 
   if (mode === VIEW_MODES.Floorplan) {
     if (!floorplanState.floors.length) {
@@ -688,9 +843,15 @@ async function switchMode(mode) {
     return;
   }
 
+  pendingMode = modeKey;
+  modeSwitchInFlight = true;
+  refreshModeButtons();
   setStatus(`正在切换到${getModeLabel(mode)}模式...`);
 
   try {
+    if (mode === VIEW_MODES.Model && resolvedWorkData) {
+      warmModelAssets(resolvedWorkData);
+    }
     const nextState = mode === VIEW_MODES.Model ? buildModelViewState() : undefined;
     await five.changeMode(mode, nextState);
     lastThreeDMode = mode;
@@ -713,6 +874,10 @@ async function switchMode(mode) {
   } catch (error) {
     console.error(error);
     setStatus(`切换模式失败: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    pendingMode = null;
+    modeSwitchInFlight = false;
+    refreshModeButtons();
   }
 }
 
@@ -741,6 +906,7 @@ async function loadBundle(id) {
     fetchJson(workUrl),
   ]);
   const resolvedWork = absolutizeBundlePaths(rawWork, baseUrl);
+  resolvedWorkData = resolvedWork;
   modelState = buildModelState(resolvedWork);
   floorplanState = buildFloorplanState(resolvedWork);
 
@@ -765,6 +931,10 @@ async function loadBundle(id) {
   });
 
   five.appendTo(viewerRootEl);
+  viewerRootEl.style.touchAction = "none";
+  viewerRootEl.style.webkitUserSelect = "none";
+  viewerRootEl.style.userSelect = "none";
+  five.getElement?.()?.style?.setProperty?.("touch-action", "none");
   attachFiveEventBridge();
   window.addEventListener("resize", () => five && five.refresh(), false);
   window.__offlineFive = five;
@@ -792,6 +962,8 @@ async function loadBundle(id) {
         ? "离线空间已加载"
         : "离线空间已加载，户型模式已禁用",
   );
+
+  scheduleModelWarmup(resolvedWork);
 }
 
 async function main() {
@@ -815,9 +987,9 @@ async function main() {
   }
 }
 
-modeButtons.Model.addEventListener("click", () => switchMode(VIEW_MODES.Model));
-modeButtons.Panorama.addEventListener("click", () => switchMode(VIEW_MODES.Panorama));
-modeButtons.Floorplan.addEventListener("click", () => switchMode(VIEW_MODES.Floorplan));
+bindPress(modeButtons.Model, () => switchMode(VIEW_MODES.Model));
+bindPress(modeButtons.Panorama, () => switchMode(VIEW_MODES.Panorama));
+bindPress(modeButtons.Floorplan, () => switchMode(VIEW_MODES.Floorplan));
 
 setModeAvailability({ Model: false, Panorama: false, Floorplan: false });
 main();
