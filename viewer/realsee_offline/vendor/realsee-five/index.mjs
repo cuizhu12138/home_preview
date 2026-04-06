@@ -18017,18 +18017,25 @@ function verify(n) {
       }
     return deepFreeze({ issuer: "none", expire: l, allowHosts: c });
   }
-  var p = String((e = o.certificate) !== null && e !== void 0 ? e : "");
+  var p = String((e = o.certificate) !== null && e !== void 0 ? e : ""), g = String((r = o._signature) !== null && r !== void 0 ? r : "");
+  if (!p && !g) {
+    var m = c.slice();
+    return s && m.indexOf(s) === -1 && m.push(s), deepFreeze({
+      issuer: "self-hosted",
+      expire: isFinite(l.getTime()) ? l : new Date("2999-12-31T23:59:59.999Z"),
+      allowHosts: m
+    });
+  }
   if (!p)
     return error_invalid_certificate();
-  var g = new X509();
-  g.readCertPEM(p);
-  var m = String((r = o._signature) !== null && r !== void 0 ? r : "");
-  if (!m)
+  if (!g)
     return error_invalid_signature();
-  var E = jsonStableNoneNumberStrinfiy(ObjectOmit(o, ["_signature"]));
-  return verifyMessage(E, m, g) === !1 ? error_invalid_signature() : u < l.getTime() ? BUILDIN_ALLOW_HOST.concat(c).filter(function(y) {
+  var E = new X509();
+  E.readCertPEM(p);
+  var y = jsonStableNoneNumberStrinfiy(ObjectOmit(o, ["_signature"]));
+  return verifyMessage(y, g, E) === !1 ? error_invalid_signature() : u < l.getTime() ? BUILDIN_ALLOW_HOST.concat(c).filter(function(y) {
     return matchDomain(y, s);
-  }).length === 0 ? error_host_not_allowed(s) : deepFreeze({ issuer: g.getSubjectString(), expire: l, allowHosts: c }) : error_date_expired(l);
+  }).length === 0 ? error_host_not_allowed(s) : deepFreeze({ issuer: E.getSubjectString(), expire: l, allowHosts: c }) : error_date_expired(l);
 }
 function verifyURL(n, t) {
   var e = hostnameFromURL(n);
