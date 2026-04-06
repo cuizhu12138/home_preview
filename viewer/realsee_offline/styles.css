@@ -360,13 +360,102 @@ h1 {
 }
 
 @media (max-width: 980px) {
+  body {
+    overflow: hidden;
+  }
+
   .layout {
-    grid-template-columns: 1fr;
-    height: auto;
+    position: relative;
+    display: block;
+    height: 100vh;
+    padding: 0;
+  }
+
+  .panel,
+  .viewport {
+    border-radius: 0;
+  }
+
+  .panel {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 4;
+    width: min(280px, calc(100vw - 20px));
+    max-height: min(48vh, 360px);
+    padding: 12px;
+    gap: 8px;
+    overflow: auto;
+    border-radius: 20px;
+    background: rgba(255, 250, 243, 0.94);
+  }
+
+  .eyebrow {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+  }
+
+  h1 {
+    font-size: 1.06rem;
+  }
+
+  .intro,
+  .tips {
+    font-size: 0.76rem;
+    line-height: 1.35;
+  }
+
+  .intro,
+  .card--details {
+    display: none;
+  }
+
+  .card {
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .card--dense {
+    padding: 9px 10px;
+  }
+
+  .section-title {
+    margin-bottom: 6px;
+    font-size: 0.76rem;
+  }
+
+  .row {
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  .label,
+  .value {
+    font-size: 0.7rem;
+  }
+
+  .button {
+    border-radius: 12px;
+    padding: 8px 6px;
+    font-size: 0.74rem;
+  }
+
+  .section-toggle {
+    padding: 10px;
+    font-size: 0.76rem;
+  }
+
+  .details-body {
+    padding: 0 10px 10px;
+  }
+
+  .meta {
+    max-height: min(18vh, 140px);
+    font-size: 0.68rem;
   }
 
   .viewport {
-    min-height: 62vh;
+    min-height: 100vh;
   }
 
   .floorplan {
@@ -376,7 +465,45 @@ h1 {
   .model-panel {
     top: 10px;
     right: 10px;
+    max-width: min(52vw, 300px);
+  }
+
+  .hint {
     left: 10px;
-    max-width: none;
+    bottom: 10px;
+    max-width: calc(100vw - 20px);
+    padding: 7px 9px;
+    font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .panel {
+    width: min(252px, calc(100vw - 20px));
+    max-height: min(44vh, 312px);
+  }
+
+  .actions {
+    gap: 6px;
+  }
+
+  .button {
+    font-size: 0.7rem;
+    padding: 7px 5px;
+  }
+
+  .model-panel {
+    top: auto;
+    right: 10px;
+    bottom: 46px;
+    max-width: min(62vw, 248px);
+    padding: 10px;
+    gap: 8px;
+    border-radius: 16px;
+  }
+
+  .segmented__button {
+    padding: 6px 9px;
+    font-size: 0.7rem;
   }
 }
