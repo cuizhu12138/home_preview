@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>本地 3D 模型查看器</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="panel">
+        <div class="panel__hero">
+          <p class="eyebrow">Local 3D Viewer</p>
+          <h1>在本地浏览你的 3D 模型</h1>
+          <p class="hero__text">
+            支持拖拽文件、选择文件夹，适合快速查看
+            <code>.glb</code>、<code>.gltf</code>、<code>.obj</code>、
+            <code>.ply</code>、<code>.stl</code>、<code>.fbx</code>。
+          </p>
+        </div>
+
+        <div id="dropzone" class="dropzone">
+          <p class="dropzone__title">把模型文件拖到这里</p>
+          <p class="dropzone__hint">
+            如果是 <code>.gltf</code> + 贴图 / <code>.bin</code>，优先选择整个文件夹。
+          </p>
+        </div>
+
+        <div class="actions">
+          <input id="file-input" type="file" multiple hidden />
+          <input id="folder-input" type="file" webkitdirectory multiple hidden />
+          <button id="pick-files" class="button button--primary">选择文件</button>
+          <button id="pick-folder" class="button">选择文件夹</button>
+          <button id="fit-view" class="button">重新适配视角</button>
+          <button id="toggle-grid" class="button button--active">显示网格</button>
+        </div>
+
+        <section class="card">
+          <label class="field">
+            <span class="field__label">可加载模型</span>
+            <select id="model-select" class="select" disabled>
+              <option>还没有选择模型文件</option>
+            </select>
+          </label>
+          <button id="load-model" class="button button--wide button--primary" disabled>
+            加载模型
+          </button>
+        </section>
+
+        <section class="card">
+          <div class="status">
+            <span class="status__label">状态</span>
+            <span id="status-text" class="status__value">等待载入模型</span>
+          </div>
+          <div class="status">
+            <span class="status__label">文件数</span>
+            <span id="file-count" class="status__value">0</span>
+          </div>
+          <div class="status">
+            <span class="status__label">当前模型</span>
+            <span id="current-model" class="status__value">无</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>模型信息</h2>
+          <pre id="model-info" class="info">加载后会在这里显示统计信息。</pre>
+        </section>
+      </aside>
+
+      <main class="viewer">
+        <div class="viewer__frame">
+          <canvas id="viewport"></canvas>
+          <div class="viewer__overlay">
+            左键旋转，右键平移，滚轮缩放
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>

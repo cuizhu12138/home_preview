@@ -1,0 +1,20 @@
+{
+  "bundle_id": "BgxP9keL4ql3RNnl",
+  "title": "清和园 4室2厅",
+  "work_code": "BgxP9keL4ql3RNnl",
+  "source_url": "https://open.realsee.com/ke/BgxP9keL4ql3RNnl/ZBVXgbW3nkjCzh1hOT0OVw7tlJdO0oxN/?duid=D2I4uq3RBy9jU4CdZZbCeZ6Re0PQb5Z4SZCv97CNKyPAwXe1&parentSceneId=525121966531353601&shareCount=1&shareTicket=364f80e0356d49004e9438b0afcb9d84&cityId=330600#lianjia&lianjiafrom=wechat",
+  "downloaded_assets": 193,
+  "downloaded_bytes": 104819691,
+  "failed_assets": [],
+  "omitted_assets": [
+    {
+      "url": "http://vrint.api.lianjia.com/floornet/auto3d-dyjsGalUfFrWWdS80IrQ0S.json",
+      "reason": "上游接口返回异常，离线包已移除该户型增强依赖"
+    }
+  ],
+  "created_at": "2026-04-06T05:05:01.999775+00:00",
+  "updated_at": "2026-04-06T05:14:26.936230+00:00",
+  "model_url": "./assets/vr-public.realsee-cdn.cn/release/auto3dhd/92acfcc01d43bc97905ff739ea1765f8/model/auto3d-dyjsGalUfFrWWdS80IrQ0S.at3d",
+  "panorama_count": 28,
+  "observer_count": 28
+}

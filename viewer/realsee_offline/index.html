@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>如视离线查看器</title>
+    <link rel="stylesheet" href="./styles.css?v=20260406n" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="panel">
+        <p class="eyebrow">Realsee Offline</p>
+        <h1>离线查看如视空间</h1>
+        <p class="intro">
+          本地资源已就绪，断网也能继续查看。
+        </p>
+
+        <section class="card card--dense">
+          <div class="row">
+            <span class="label">Bundle</span>
+            <span id="bundle-id" class="value">未指定</span>
+          </div>
+          <div class="row">
+            <span class="label">标题</span>
+            <span id="bundle-title" class="value">等待加载</span>
+          </div>
+          <div class="row">
+            <span class="label">状态</span>
+            <span id="status-text" class="value">等待 bundle</span>
+          </div>
+        </section>
+
+        <section class="card card--dense">
+          <p class="section-title">模式</p>
+          <div class="actions">
+            <button id="mode-model" class="button button--primary">模型</button>
+            <button id="mode-panorama" class="button">全景</button>
+            <button id="mode-floorplan" class="button">户型</button>
+          </div>
+        </section>
+
+        <details class="card card--details">
+          <summary class="section-toggle">说明与元信息</summary>
+          <div class="details-body">
+            <p class="section-title">说明</p>
+            <ul class="tips">
+              <li>默认优先进入高清全景模式。</li>
+              <li>模型模式看的是重建网格，不会像全景照片那么清晰。</li>
+              <li>如果要看详细数据，再展开下面的元信息。</li>
+            </ul>
+
+            <p class="section-title section-title--meta">元信息</p>
+            <pre id="meta-text" class="meta">等待加载元信息...</pre>
+          </div>
+        </details>
+      </aside>
+
+      <main class="viewport">
+        <div id="viewer-root" class="viewer-root"></div>
+        <section id="model-panel" class="model-panel model-panel--hidden" aria-label="模型楼层控制">
+          <div class="model-panel__group">
+            <span class="model-panel__label">楼层</span>
+            <div id="model-floors" class="segmented" role="tablist" aria-label="模型楼层"></div>
+          </div>
+          <div class="model-panel__group">
+            <span class="model-panel__label">效果</span>
+            <div id="model-floor-style" class="segmented" role="tablist" aria-label="楼层效果"></div>
+          </div>
+        </section>
+        <section id="floorplan-panel" class="floorplan floorplan--hidden" aria-label="户型图">
+          <div class="floorplan__toolbar">
+            <div id="floorplan-levels" class="segmented" role="tablist" aria-label="楼层"></div>
+            <div id="floorplan-types" class="segmented" role="tablist" aria-label="图层"></div>
+          </div>
+          <div class="floorplan__stage">
+            <img id="floorplan-image" class="floorplan__image" alt="户型图" />
+          </div>
+        </section>
+        <div id="fatal-error" class="fatal fatal--hidden" role="alert"></div>
+        <div class="hint">鼠标拖拽旋转，滚轮缩放，右键平移</div>
+      </main>
+    </div>
+
+    <script type="module">
+      const fatalEl = document.querySelector("#fatal-error");
+      const showFatal = (message) => {
+        fatalEl.textContent = message;
+        fatalEl.classList.remove("fatal--hidden");
+      };
+
+      window.addEventListener("error", (event) => {
+        const message = event?.error?.stack || event?.message || "未知脚本错误";
+        showFatal(`页面脚本加载失败:\n${message}`);
+      });
+
+      window.addEventListener("unhandledrejection", (event) => {
+        const reason = event?.reason;
+        const message = reason?.stack || reason?.message || String(reason);
+        showFatal(`页面初始化失败:\n${message}`);
+      });
+
+      import("./app.js?v=20260406n").catch((error) => {
+        const message = error?.stack || error?.message || String(error);
+        showFatal(`查看器模块加载失败:\n${message}`);
+      });
+    </script>
+  </body>
+</html>
