@@ -1,5 +1,5 @@
 import { Vector3 } from "three";
-import { Five, parseWork } from "./vendor/realsee-five/index.mjs";
+import { Five, parseWork } from "./vendor/realsee-five/index.mjs?v=20260406p";
 
 const bundleIdEl = document.querySelector("#bundle-id");
 const bundleTitleEl = document.querySelector("#bundle-title");

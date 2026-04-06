@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>如视离线查看器</title>
-    <link rel="stylesheet" href="./styles.css?v=20260406n" />
+    <link rel="stylesheet" href="./styles.css?v=20260406p" />
     <script type="importmap">
       {
         "imports": {
@@ -106,7 +106,7 @@
         showFatal(`页面初始化失败:\n${message}`);
       });
 
-      import("./app.js?v=20260406n").catch((error) => {
+      import("./app.js?v=20260406p").catch((error) => {
         const message = error?.stack || error?.message || String(error);
         showFatal(`查看器模块加载失败:\n${message}`);
       });
