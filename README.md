@@ -1,8 +1,8 @@
-# Realsee Offline Local
+# Offline Space Local
 
 这个目录是独立的本地 3D 查看工作区，不依赖 `e_claude_code` 仓库。
 
-## 打开如视离线包
+## 打开离线空间包
 
 ```bash
 python3 /Users/eutopia/workspace/realsee_offline_local/tools/realsee_offline_viewer.py --bundle BgxP9keL4ql3RNnl
@@ -12,7 +12,7 @@ python3 /Users/eutopia/workspace/realsee_offline_local/tools/realsee_offline_vie
 
 - `/Users/eutopia/workspace/realsee_offline_local/offline_bundles/BgxP9keL4ql3RNnl`
 
-## 重新抓取如视分享页
+## 重新抓取分享页
 
 ```bash
 python3 /Users/eutopia/workspace/realsee_offline_local/tools/realsee_offline_bundle.py '<分享页 URL>' --force

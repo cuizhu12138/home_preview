@@ -66,6 +66,42 @@ let floorplanState = {
   type: "hierarchy",
 };
 
+function sanitizeBrandText(value) {
+  if (typeof value !== "string" || !value) {
+    return value;
+  }
+
+  return value
+    .replace(/贝壳·如视\s*\|?/g, "")
+    .replace(/贝壳·VR看房\s*\|?/g, "")
+    .replace(/真实，如你所视/g, "")
+    .replace(/Realsee/gi, "")
+    .replace(/如视/g, "")
+    .replace(/\s+\|\s+/g, " | ")
+    .replace(/\|\s*\|/g, "|")
+    .replace(/\s{2,}/g, " ")
+    .replace(/^[\s|·-]+|[\s|·-]+$/g, "")
+    .trim();
+}
+
+function sanitizeDisplayValue(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeDisplayValue(item));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, sanitizeDisplayValue(item)]),
+    );
+  }
+
+  if (typeof value === "string") {
+    return sanitizeBrandText(value);
+  }
+
+  return value;
+}
+
 function publishDebugState() {
   window.__offlineDebug = {
     currentMode,
@@ -811,7 +847,7 @@ function attachFiveEventBridge() {
   });
 
   five.on("model.error", (event) => {
-    const message = event?.error?.message || String(event?.error || "未知错误");
+    const message = sanitizeBrandText(event?.error?.message || String(event?.error || "未知错误"));
     setStatus(`模型加载失败: ${message}`);
   });
 }
@@ -873,7 +909,8 @@ async function switchMode(mode) {
     );
   } catch (error) {
     console.error(error);
-    setStatus(`切换模式失败: ${error instanceof Error ? error.message : String(error)}`);
+    const message = sanitizeBrandText(error instanceof Error ? error.message : String(error));
+    setStatus(`切换模式失败: ${message}`);
   } finally {
     pendingMode = null;
     modeSwitchInFlight = false;
@@ -911,7 +948,9 @@ async function loadBundle(id) {
   floorplanState = buildFloorplanState(resolvedWork);
 
   bundleTitleEl.textContent = meta.title || resolvedWork.title || id;
-  metaTextEl.textContent = JSON.stringify(meta, null, 2);
+  bundleTitleEl.textContent =
+    sanitizeBrandText(meta.title || resolvedWork.title || id) || "离线空间";
+  metaTextEl.textContent = JSON.stringify(sanitizeDisplayValue(meta), null, 2);
 
   modeAvailability = {
     Model: Boolean(resolvedWork.model?.file_url),
@@ -940,7 +979,7 @@ async function loadBundle(id) {
   window.__offlineFive = five;
   publishDebugState();
 
-  setStatus("正在载入如视空间...");
+  setStatus("正在载入离线空间...");
   await five.load(work, { mode: initialMode });
   await five.ready();
 
@@ -981,8 +1020,9 @@ async function main() {
   } catch (error) {
     console.error(error);
     bundleTitleEl.textContent = "加载失败";
-    metaTextEl.textContent = error instanceof Error ? error.stack || error.message : String(error);
-    setStatus(`加载失败: ${error instanceof Error ? error.message : String(error)}`);
+    const message = sanitizeBrandText(error instanceof Error ? error.stack || error.message : String(error));
+    metaTextEl.textContent = message;
+    setStatus(`加载失败: ${sanitizeBrandText(error instanceof Error ? error.message : String(error))}`);
     setModeAvailability({ Model: false, Panorama: false, Floorplan: false });
   }
 }
